@@ -79,9 +79,48 @@ class request_typesTests: XCTestCase {
         }
     }
 
+
+    func testHybrid() {
+        var middlewares: [HybridMiddleware] = []
+
+        for _ in 0..<Int(2^^4) {
+            let appendMiddleware = AppendPathHybridMiddleware()
+            middlewares.append(appendMiddleware)
+        }
+
+        let base: HybridResponder = { req in
+            return HybridResponse(.ok)
+        }
+
+        let chain = middlewares.reduce(base, { nextResponder, nextMiddleware in
+            let closure: HybridResponder = { req in
+                return nextMiddleware.respond(to: &req, next: nextResponder)
+            }
+            return closure
+        })
+
+        var body: Bytes = []
+        for _ in 0..<Int(2^^12) {
+            body.append(64)
+        }
+
+        measure {
+            for _ in 0..<Int(2^^16) {
+                var request = HybridRequest(
+                    .get,
+                    path: "/foo",
+                    headers: ["Content-Type": "application/json"],
+                    body: body
+                )
+
+                _ = chain(&request)
+            }
+        }
+    }
     static var allTests = [
         ("testReference", testReference),
         ("testValue", testValue),
+        ("testHybrid", testHybrid),
     ]
 }
 
