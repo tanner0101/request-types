@@ -48,6 +48,23 @@ struct ValueResponse {
 
 
 
+typealias NonInoutValueResponder = (ValueRequest) -> ValueResponse
+
+protocol NonInoutValueMiddleware {
+    func respond(to request: ValueRequest, next: NonInoutValueResponder) -> ValueResponse
+}
+
+struct AppendPathNonInoutValueMiddleware: NonInoutValueMiddleware {
+    func respond(to request: ValueRequest, next: NonInoutValueResponder) -> ValueResponse {
+      var copy = request
+        copy.path = copy.path + "a"
+        return next(copy)
+    }
+}
+
+
+
+
 
 typealias ReferenceResponder = (ReferenceRequest) -> ReferenceResponse
 
@@ -157,6 +174,22 @@ final class AppendPathHybridMiddleware: HybridMiddleware {
     func respond(to request: inout HybridRequest, next: HybridResponder) -> HybridResponse {
         request.path = request.path + "a"
         return next(&request)
+    }
+}
+
+
+
+typealias NonInoutHybridResponder = (HybridRequest) -> HybridResponse
+
+protocol NonInoutHybridMiddleware {
+    func respond(to request: HybridRequest, next: NonInoutHybridResponder) -> HybridResponse
+}
+
+struct AppendPathNonInoutHybridMiddleware: NonInoutHybridMiddleware {
+    func respond(to request: HybridRequest, next: NonInoutHybridResponder) -> HybridResponse {
+      var copy = request
+        copy.path = copy.path + "a"
+        return next(copy)
     }
 }
 
