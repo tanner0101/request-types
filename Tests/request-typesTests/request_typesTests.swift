@@ -79,9 +79,127 @@ class request_typesTests: XCTestCase {
         }
     }
 
+    func testNonInoutValue() {
+        var middlewares: [NonInoutValueMiddleware] = []
+
+        for _ in 0..<Int(2^^4) {
+            let appendMiddleware = AppendPathNonInoutValueMiddleware()
+            middlewares.append(appendMiddleware)
+        }
+
+        let base: NonInoutValueResponder = { req in
+            return ValueResponse(.ok)
+        }
+
+        let chain = middlewares.reduce(base, { nextResponder, nextMiddleware in
+            let closure: NonInoutValueResponder = { req in
+                return nextMiddleware.respond(to: req, next: nextResponder)
+            }
+            return closure
+        })
+
+        var body: Bytes = []
+        for _ in 0..<Int(2^^12) {
+            body.append(64)
+        }
+
+        measure {
+            for _ in 0..<Int(2^^16) {
+                let request = ValueRequest(
+                    .get,
+                    path: "/foo",
+                    headers: ["Content-Type": "application/json"],
+                    body: body
+                )
+
+                _ = chain(request)
+            }
+        }
+    }
+
+    func testHybrid() {
+        var middlewares: [HybridMiddleware] = []
+
+        for _ in 0..<Int(2^^4) {
+            let appendMiddleware = AppendPathHybridMiddleware()
+            middlewares.append(appendMiddleware)
+        }
+
+        let base: HybridResponder = { req in
+            return HybridResponse(.ok)
+        }
+
+        let chain = middlewares.reduce(base, { nextResponder, nextMiddleware in
+            let closure: HybridResponder = { req in
+                return nextMiddleware.respond(to: &req, next: nextResponder)
+            }
+            return closure
+        })
+
+        var body: Bytes = []
+        for _ in 0..<Int(2^^12) {
+            body.append(64)
+        }
+
+        measure {
+            for _ in 0..<Int(2^^16) {
+                var request = HybridRequest(
+                    .get,
+                    path: "/foo",
+                    headers: ["Content-Type": "application/json"],
+                    body: body
+                )
+
+                _ = chain(&request)
+            }
+        }
+    }
+    
+
+    func testNonInoutHybrid() {
+        var middlewares: [NonInoutHybridMiddleware] = []
+
+        for _ in 0..<Int(2^^4) {
+            let appendMiddleware = AppendPathNonInoutHybridMiddleware()
+            middlewares.append(appendMiddleware)
+        }
+
+        let base: NonInoutHybridResponder = { req in
+            return HybridResponse(.ok)
+        }
+
+        let chain = middlewares.reduce(base, { nextResponder, nextMiddleware in
+            let closure: NonInoutHybridResponder = { req in
+                return nextMiddleware.respond(to: req, next: nextResponder)
+            }
+            return closure
+        })
+
+        var body: Bytes = []
+        for _ in 0..<Int(2^^12) {
+            body.append(64)
+        }
+
+        measure {
+            for _ in 0..<Int(2^^16) {
+                let request = HybridRequest(
+                    .get,
+                    path: "/foo",
+                    headers: ["Content-Type": "application/json"],
+                    body: body
+                )
+
+                _ = chain(request)
+            }
+        }
+    }
+    
     static var allTests = [
         ("testReference", testReference),
         ("testValue", testValue),
+        ("testNonInoutValue", testNonInoutValue),
+        ("testHybrid", testHybrid),
+        ("testNonInoutHybrid", testNonInoutHybrid),
     ]
 }
 
